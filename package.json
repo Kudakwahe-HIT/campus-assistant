@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/bot/match.test.ts src/whatsapp/verify.test.ts src/whatsapp/parse.test.ts",
+    "test": "tsx --test src/bot/match.test.ts src/whatsapp/verify.test.ts src/whatsapp/parse.test.ts src/bot/router.e2e.test.ts src/dashboard/dashboard.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "staff:create": "tsx src/dashboard/create-staff.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -21,6 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

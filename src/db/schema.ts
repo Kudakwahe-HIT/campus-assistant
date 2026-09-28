@@ -70,6 +70,18 @@ export const users = pgTable(
   (t) => [index('users_role_idx').on(t.role)],
 );
 
+/* ---------- Back-office staff ---------- */
+
+export const staffUsers = pgTable('staff_users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  name: text('name').notNull(),
+  // scrypt, see src/dashboard/password.ts
+  passwordHash: text('password_hash').notNull(),
+  disabledAt: timestamp('disabled_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /* ---------- Conversation ---------- */
 
 // Per-user multi-step flow state (OTP verification, applications, etc.).
@@ -95,6 +107,8 @@ export const messages = pgTable(
     direction: messageDirection('direction').notNull(),
     kind: text('kind').notNull(),
     body: text('body'),
+    // Set on outbound messages a staff member typed in the shared inbox; null = sent by the bot.
+    sentByStaffId: uuid('sent_by_staff_id').references(() => staffUsers.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('messages_user_created_idx').on(t.userId, t.createdAt)],
@@ -175,3 +189,5 @@ export const consents = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type ContentItem = typeof contentItems.$inferSelect;
+export type StaffUser = typeof staffUsers.$inferSelect;
+export type HandoffTicket = typeof handoffTickets.$inferSelect;

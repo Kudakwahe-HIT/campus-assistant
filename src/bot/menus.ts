@@ -1,3 +1,4 @@
+import { fill } from './copy';
 import type { Reply } from './types';
 
 export const CATEGORY_LABELS: Record<string, { title: string; description: string }> = {
@@ -12,8 +13,9 @@ export const CATEGORY_LABELS: Record<string, { title: string; description: strin
 export function roleChoice(): Reply {
   return {
     kind: 'buttons',
-    body:
-      'Hi, I\'m the HIT Campus Assistant. I can help with admissions, fees, registration and more.\n\nWho are you?',
+    body: fill(
+      "Hi, I'm {bot_name}, HIT's automated assistant. I can help with admissions, fees, registration and more.\n\nWho are you?",
+    ),
     buttons: [
       { id: 'role:prospect', title: 'New / prospective' },
       { id: 'role:student', title: 'Current student' },
@@ -25,7 +27,7 @@ export function roleChoice(): Reply {
 export function mainMenu(): Reply {
   return {
     kind: 'list',
-    body: 'What do you need help with? Pick from the list, or just type your question.',
+    body: fill('What do you need help with? Pick from the list, or just type your question.'),
     button: 'Open menu',
     sections: [
       {
@@ -49,7 +51,7 @@ export function mainMenu(): Reply {
 export function afterAnswer(): Reply {
   return {
     kind: 'buttons',
-    body: 'Anything else?',
+    body: fill('Anything else?'),
     buttons: [
       { id: 'menu:main', title: 'Main menu' },
       { id: 'human', title: 'Talk to a person' },

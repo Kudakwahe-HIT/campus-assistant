@@ -22,6 +22,11 @@ export const env = {
   get phoneNumberId() {
     return required('WHATSAPP_PHONE_NUMBER_ID');
   },
+  get sessionSecret() {
+    const v = required('SESSION_SECRET');
+    if (v.length < 32) throw new Error('SESSION_SECRET must be at least 32 characters');
+    return v;
+  },
   get apiVersion() {
     return process.env.WHATSAPP_API_VERSION ?? 'v21.0';
   },

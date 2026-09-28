@@ -10,14 +10,19 @@ import {
   type User,
 } from '../db/schema';
 import type { InboundMessage } from '../whatsapp/parse';
+import { fill } from './copy';
 import { MIN_SCORE, normalize, rankContent } from './match';
 import { afterAnswer, CATEGORY_LABELS, mainMenu, roleChoice } from './menus';
 import type { Reply } from './types';
 
 const GREETINGS = new Set(['hi', 'hello', 'hey', 'menu', 'start', 'help', '0', 'main menu']);
+// Explicit "back to the bot" commands. Plain greetings don't count: during a handoff they are for the human.
+const MENU_WORDS = new Set(['menu', '0', 'main menu']);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HUMAN_WORDS = new Set(['agent', 'human', 'person', 'staff', 'operator', 'talk to a person', 'talk to someone']);
 
-const text = (body: string): Reply => ({ kind: 'text', body });
+// Body text always goes through fill() so copy can use {bot_name} and, later, other variables.
+const text = (body: string): Reply => ({ kind: 'text', body: fill(body) });
 
 /**
  * Decides what to send back for one inbound message.
@@ -25,6 +30,8 @@ const text = (body: string): Reply => ({ kind: 'text', body });
  */
 export async function handleMessage(db: Db, user: User, m: InboundMessage): Promise<Reply[]> {
   if (m.kind === 'unsupported') {
+    // A photo or voice note during a handoff is for the staff member; the inbox shows it.
+    if (await hasOpenTicket(db, user.id)) return [];
     return [text('I can only read text messages for now. Send *menu* to see what I can help with.')];
   }
 
@@ -56,17 +63,29 @@ export async function handleMessage(db: Db, user: User, m: InboundMessage): Prom
     return [roleChoice()];
   }
 
-  const isNavigation = Boolean(m.replyId) || GREETINGS.has(input) || HUMAN_WORDS.has(input);
+  const wantsMenu = m.replyId === 'menu:main' || MENU_WORDS.has(input);
+  const wantsHuman = m.replyId === 'human' || HUMAN_WORDS.has(input);
 
-  // If a human has taken the chat, stay quiet on free text so we don't talk over them.
-  if (!isNavigation && (await hasOpenTicket(db, user.id))) return [];
+  // While a human has the chat, the bot stays quiet unless the user explicitly asks
+  // for the menu (which hands the chat back, as the handoff message promises).
+  if (await hasOpenTicket(db, user.id)) {
+    if (wantsMenu) {
+      await closeOpenTickets(db, user.id);
+      return [mainMenu()];
+    }
+    if (wantsHuman) return startHandoff(db, user);
+    if (!m.replyId) return [];
+  }
 
-  if (m.replyId === 'menu:main' || GREETINGS.has(input)) return [mainMenu()];
-  if (m.replyId === 'human' || HUMAN_WORDS.has(input)) return startHandoff(db, user);
+  if (wantsMenu || GREETINGS.has(input)) return [mainMenu()];
+  if (wantsHuman) return startHandoff(db, user);
 
   if (m.replyId?.startsWith('cat:')) return categoryReply(db, m.replyId.slice(4));
   if (m.replyId?.startsWith('item:')) return itemReply(db, m.replyId.slice(5));
   if (m.replyId?.startsWith('school:')) return schoolReply(db, Number(m.replyId.slice(7)));
+
+  // Any other button (e.g. an old role button) is navigation, not a question to log.
+  if (m.replyId) return [mainMenu()];
 
   return freeTextReply(db, user, m.text ?? '');
 }
@@ -80,14 +99,14 @@ async function categoryReply(db: Db, category: string): Promise<Reply[]> {
     return [
       {
         kind: 'list',
-        body: 'HIT has these schools. Pick one to see its departments.',
+        body: fill('HIT has these schools. Pick one to see its departments.'),
         button: 'Choose school',
         sections: [{ rows: rows.slice(0, 10).map((s) => ({ id: `school:${s.id}`, title: s.name })) }],
       },
     ];
   }
 
-  if (!(category in CATEGORY_LABELS)) return [mainMenu()];
+  if (!Object.hasOwn(CATEGORY_LABELS, category)) return [mainMenu()];
 
   const items = await db
     .select()
@@ -101,7 +120,7 @@ async function categoryReply(db: Db, category: string): Promise<Reply[]> {
   return [
     {
       kind: 'list',
-      body: `*${CATEGORY_LABELS[category].title}*\nWhat would you like to know?`,
+      body: fill(`*${CATEGORY_LABELS[category].title}*\nWhat would you like to know?`),
       button: 'Choose topic',
       sections: [{ rows: items.slice(0, 10).map((i) => ({ id: `item:${i.id}`, title: i.title })) }],
     },
@@ -109,6 +128,7 @@ async function categoryReply(db: Db, category: string): Promise<Reply[]> {
 }
 
 async function itemReply(db: Db, id: string): Promise<Reply[]> {
+  if (!UUID.test(id)) return [mainMenu()];
   const [item] = await db
     .select()
     .from(contentItems)
@@ -119,6 +139,7 @@ async function itemReply(db: Db, id: string): Promise<Reply[]> {
 }
 
 async function schoolReply(db: Db, schoolId: number): Promise<Reply[]> {
+  if (!Number.isInteger(schoolId)) return [mainMenu()];
   const [school] = await db.select().from(schools).where(eq(schools.id, schoolId)).limit(1);
   if (!school) return [mainMenu()];
   const depts = await db
@@ -148,7 +169,7 @@ async function freeTextReply(db: Db, user: User, raw: string): Promise<Reply[]> 
     text("Sorry, I don't have an answer to that yet. I've noted your question so we can add it."),
     {
       kind: 'buttons',
-      body: 'What would you like to do?',
+      body: fill('What would you like to do?'),
       buttons: [
         { id: 'menu:main', title: 'Main menu' },
         { id: 'human', title: 'Talk to a person' },
@@ -176,12 +197,19 @@ async function hasOpenTicket(db: Db, userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+async function closeOpenTickets(db: Db, userId: string): Promise<void> {
+  await db
+    .update(handoffTickets)
+    .set({ status: 'closed', closedAt: new Date() })
+    .where(and(eq(handoffTickets.userId, userId), inArray(handoffTickets.status, ['open', 'assigned'])));
+}
+
 function noContent(): Reply[] {
   return [
     text("I don't have information on that loaded yet."),
     {
       kind: 'buttons',
-      body: 'Would you like to speak to someone?',
+      body: fill('Would you like to speak to someone?'),
       buttons: [
         { id: 'human', title: 'Talk to a person' },
         { id: 'menu:main', title: 'Main menu' },
