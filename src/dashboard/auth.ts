@@ -6,7 +6,13 @@ import { getDb } from '../db';
 import { staffUsers, type StaffUser } from '../db/schema';
 import { env } from '../env';
 import { verifyPassword } from './password';
-import { createSessionToken, readSessionToken, SESSION_COOKIE, SESSION_TTL_MS } from './session';
+import {
+  createSessionToken,
+  readSessionToken,
+  SESSION_COOKIE,
+  SESSION_TTL_MS,
+  SESSION_TTL_REMEMBER_MS,
+} from './session';
 
 export type Staff = Pick<StaffUser, 'id' | 'email' | 'name'>;
 
@@ -29,7 +35,7 @@ export async function requireStaff(): Promise<Staff> {
   return staff;
 }
 
-export async function logIn(email: string, password: string): Promise<boolean> {
+export async function logIn(email: string, password: string, remember = false): Promise<boolean> {
   const [staff] = await getDb()
     .select()
     .from(staffUsers)
@@ -39,12 +45,13 @@ export async function logIn(email: string, password: string): Promise<boolean> {
   const ok = await verifyPassword(password, staff?.passwordHash ?? DUMMY_HASH);
   if (!staff || !ok || staff.disabledAt) return false;
 
-  (await cookies()).set(SESSION_COOKIE, createSessionToken(staff.id, env.sessionSecret), {
+  const ttlMs = remember ? SESSION_TTL_REMEMBER_MS : SESSION_TTL_MS;
+  (await cookies()).set(SESSION_COOKIE, createSessionToken(staff.id, env.sessionSecret, Date.now(), ttlMs), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_TTL_MS / 1000,
+    maxAge: ttlMs / 1000,
   });
   return true;
 }

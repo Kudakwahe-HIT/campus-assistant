@@ -10,16 +10,24 @@ export const CATEGORY_LABELS: Record<string, { title: string; description: strin
   contacts: { title: 'Contact HIT', description: 'Phone, email, portals' },
 };
 
+// WhatsApp formatting: *bold* (single asterisk) and _italic_ (underscore), not markdown's ** and *.
+const WELCOME =
+  '👋🏽 *Hey there! Welcome to HIT! 🎓*\n\n' +
+  "I'm *{bot_name}*, your friendly digital campus assistant. 🤖💚\n\n" +
+  "Think of me as the person you can ask when you're thinking:\n\n" +
+  '_"Umm… where do I even find that information?"_ 😅\n\n' +
+  'I can help you with *admissions, programmes, fees, registration, accommodation, events, timetables, and more.*\n\n' +
+  'So, what brings you here today? 👇🏽\n\n' +
+  "Don't worry, I won't judge your choice. 😂";
+
 export function roleChoice(): Reply {
   return {
     kind: 'buttons',
-    body: fill(
-      "Hi, I'm {bot_name}, HIT's automated assistant. I can help with admissions, fees, registration and more.\n\nWho are you?",
-    ),
+    body: fill(WELCOME),
     buttons: [
-      { id: 'role:prospect', title: 'New / prospective' },
-      { id: 'role:student', title: 'Current student' },
-      { id: 'role:staff', title: 'Staff' },
+      { id: 'role:prospect', title: "I'm an Applicant" },
+      { id: 'role:student', title: "I'm a Student" },
+      { id: 'role:staff', title: "I'm HIT Staff" },
     ],
   };
 }

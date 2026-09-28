@@ -8,7 +8,7 @@ import { createTestDb } from '../test/pglite';
 import { parseContentForm, parseKeywords, reviewDue, saveContent } from './content';
 import { closeTicket, InboxError, maskPhone, reopenTicket, replyToTicket, type Sender } from './inbox';
 import { hashPassword, verifyPassword } from './password';
-import { createSessionToken, readSessionToken, SESSION_TTL_MS } from './session';
+import { createSessionToken, readSessionToken, SESSION_TTL_MS, SESSION_TTL_REMEMBER_MS } from './session';
 
 let db: Db;
 let client: PGlite;
@@ -44,6 +44,13 @@ describe('auth', () => {
     assert.equal(readSessionToken(token, 'y'.repeat(40), now), null);
     assert.equal(readSessionToken(token.replace('staff-1', 'staff-2'), SECRET, now), null);
     assert.equal(readSessionToken(undefined, SECRET), null);
+  });
+
+  test('"remember me" uses the longer TTL', () => {
+    const now = 1_000_000;
+    const token = createSessionToken('staff-1', SECRET, now, SESSION_TTL_REMEMBER_MS);
+    assert.equal(readSessionToken(token, SECRET, now + SESSION_TTL_MS + 1), 'staff-1');
+    assert.equal(readSessionToken(token, SECRET, now + SESSION_TTL_REMEMBER_MS + 1), null);
   });
 });
 

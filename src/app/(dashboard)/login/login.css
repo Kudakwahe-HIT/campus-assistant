@@ -1,0 +1,219 @@
+/* Scoped to .auth-page so this palette doesn't leak into the rest of the dashboard,
+   which keeps its own theme (see ../dashboard.css). */
+.auth-page {
+  --navy: #0c131f;
+  --gold: #ffac27;
+  --ice: #7fcdee;
+  --ice-wash: #eaf7fc;
+
+  min-height: 100vh;
+  display: flex;
+  background: #fff;
+}
+
+.auth-illustration {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 48px;
+  background: linear-gradient(180deg, #fbfeff 0%, var(--ice-wash) 100%);
+}
+
+.auth-illustration img {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+}
+
+.auth-dots {
+  display: flex;
+  gap: 8px;
+}
+.auth-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(12, 19, 31, 0.15);
+}
+.auth-dots span.active {
+  background: var(--gold);
+  width: 22px;
+}
+
+.auth-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 64px 0;
+  background: rgba(12, 19, 31, 0.08);
+}
+
+.auth-form-side {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+
+.auth-form-wrap {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-form-wrap h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0 0 32px;
+}
+
+.auth-alert {
+  background: rgba(179, 38, 30, 0.08);
+  color: #b3261e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.auth-field {
+  margin-bottom: 26px;
+}
+.auth-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(12, 19, 31, 0.45);
+  margin-bottom: 6px;
+}
+.auth-field input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1.5px solid rgba(12, 19, 31, 0.15);
+  background: transparent;
+  padding: 4px 2px 10px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--navy);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.auth-field input:focus {
+  border-bottom-color: var(--gold);
+}
+
+.auth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0 32px;
+  font-size: 13px;
+  color: rgba(12, 19, 31, 0.6);
+}
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 400;
+  margin: 0;
+}
+/* Custom checkbox: native accent-color styling looks inconsistent across browsers/OSes,
+   so this draws its own box and an animated checkmark instead. The checkmark is a real
+   sibling <svg>, not a ::before on the <input> -- browsers don't reliably render
+   generated content on replaced elements like inputs. */
+.auth-check-box {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+.auth-check-box input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 5px;
+  border: 1.5px solid rgba(12, 19, 31, 0.25);
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.auth-check-box input:hover {
+  border-color: var(--gold);
+}
+.auth-check-box input:checked {
+  background-color: var(--gold);
+  border-color: var(--gold);
+}
+.auth-check-box input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.auth-check-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: scale(0);
+  transition: transform 0.12s ease-in-out;
+}
+.auth-check-box input:checked + .auth-check-icon {
+  transform: scale(1);
+}
+
+.auth-submit {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--navy);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(255, 172, 39, 0.35);
+  transition:
+    transform 0.1s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+}
+.auth-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(255, 172, 39, 0.45);
+}
+.auth-submit:active {
+  transform: translateY(0);
+}
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+@media (max-width: 880px) {
+  .auth-illustration,
+  .auth-divider {
+    display: none;
+  }
+  .auth-form-side {
+    padding: 32px 24px;
+  }
+}
